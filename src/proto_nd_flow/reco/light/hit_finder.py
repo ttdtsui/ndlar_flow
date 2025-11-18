@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import numpy.ma as ma
 from collections import defaultdict
@@ -144,6 +145,9 @@ class WaveformHitFinder(H5FlowStage):
 
     # function to calculate the prompt light fraction in a vectorized way
     def calculate_fprompt(self, summed_wvfm, interactions, prompt_window_ns, long_window_ns, tick_duration_ns):
+        # Fill masked locations with nans so that numpy doesn't print a warning
+        # when it does that for us
+        swvfm_data = summed_wvfm.filled(np.nan)
         # Define regions
         prompt_bins = int(np.ceil(prompt_window_ns / tick_duration_ns))
         total_bins = int(np.ceil(long_window_ns / tick_duration_ns))
@@ -160,8 +164,8 @@ class WaveformHitFinder(H5FlowStage):
                     t0_bin = np.argmax(interactions[i, j, k]) - 5
                     end_prompt = t0_bin + prompt_bins
                     end_total = t0_bin + total_bins
-                    prompt_int[i, j, k] = np.sum(summed_wvfm[i, j, k, t0_bin:end_prompt])
-                    total_int[i, j, k] = np.sum(summed_wvfm[i, j, k, t0_bin:end_total])
+                    prompt_int[i, j, k] = np.sum(swvfm_data[i, j, k, t0_bin:end_prompt])
+                    total_int[i, j, k] = np.sum(swvfm_data[i, j, k, t0_bin:end_total])
         # Calculate fprompt
         with np.errstate(divide='ignore', invalid='ignore'):
             fprompt = np.where(
@@ -182,8 +186,11 @@ class WaveformHitFinder(H5FlowStage):
         # set non mask values to nan
         noise_samples = np.where(noise_mask, wvfms, np.nan)
         # calculate noise as stddev of noise_samples
+        with warnings.catch_warnings():   # nanstd warns about all-NaNs but we don't care
+            warnings.simplefilter('ignore')
+            std = np.nanstd(noise_samples, axis=-1)
         noise = np.where(np.nansum(noise_samples, axis=-1) != 0,
-                         np.nanstd(noise_samples, axis=-1),
+                         std,
                          np.nan)
         return  noise
 
