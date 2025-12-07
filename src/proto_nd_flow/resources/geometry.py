@@ -391,7 +391,7 @@ class Geometry(H5FlowResource):
         self._module_RO_bounds = []
 
         # Loop through modules
-        for module_id in module_to_io_groups:  
+        for module_id in tqdm(module_to_io_groups, desc='q'):
             io_group, io_channel, chip_id, channel_id = self.pixel_coordinates_2D.keys()
             min_coord = np.finfo(self.pixel_coordinates_2D.dtype).min
             max_coord = np.finfo(self.pixel_coordinates_2D.dtype).max
@@ -400,7 +400,7 @@ class Geometry(H5FlowResource):
             min_z, max_z = min_coord, max_coord
 
             # Loop through io_groups
-            for iog in module_to_io_groups[module_id]:
+            for iog in tqdm(module_to_io_groups[module_id], desc='w', position=1, leave=False):
                 
                 mask = (io_group == iog)
 
