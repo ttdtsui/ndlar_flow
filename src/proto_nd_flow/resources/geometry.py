@@ -798,11 +798,11 @@ class Geometry(H5FlowResource):
             ys = np.array(list(chip_channel_to_position.values()))[:, 1] * pixel_pitch
             z_size = max(zs) - min(zs) + pixel_pitch
             y_size = max(ys) - min(ys) + pixel_pitch
-            for tile in tqdm(tile_chip_to_io, desc='b', position=1):
+            for tile in tqdm(tile_chip_to_io, desc='b', position=1, leave=False):
                 tile_orientation = tile_orientations[tile]
                 tile_geometry[tile] = [pos / units.cm for pos in tile_positions[tile]], tile_orientations[tile] # convert mm -> cm
 
-                for chip in tqdm(tile_chip_to_io[tile], desc='c', position=2):
+                for chip in tqdm(tile_chip_to_io[tile], desc='c', position=2, leave=False):
                     io_group_io_channel = tile_chip_to_io[tile][chip]
                     io_group = io_group_io_channel//1000 + (module_id-1)*len(det_geometry_yaml['module_to_io_groups'][module_id])
                     io_channel = io_group_io_channel % 1000
@@ -815,7 +815,7 @@ class Geometry(H5FlowResource):
                         for io_channel in range(start_io_channel, start_io_channel+self.n_io_channels_per_tile):
                             self._tile_id[([io_group], [io_channel])] = tile+(module_id-1)*len(tile_chip_to_io)
 
-                for chip_channel in tqdm(chip_channel_to_position, desc='d', position=2):
+                for chip_channel in tqdm(chip_channel_to_position, desc='d', position=2, leave=False):
                     chip = chip_channel // 1000
                     channel = chip_channel % 1000
                     try:
