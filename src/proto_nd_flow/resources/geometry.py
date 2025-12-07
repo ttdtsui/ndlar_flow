@@ -853,8 +853,7 @@ class Geometry(H5FlowResource):
                     else:
                         io_channels = [io_channel]
 
-                    print('e')
-                    for ioc in tqdm(io_channels):
+                    for ioc in io_channels:
                         try:
                             self._pixel_coordinates_2D[(io_group, ioc, chip, channel)] = z, y
                         except:
