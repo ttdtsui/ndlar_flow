@@ -13,6 +13,8 @@ from proto_nd_flow.util.lut import LUT, write_lut, read_lut
 from proto_nd_flow.util.compat import assert_compat_version
 import proto_nd_flow.util.units as units
 
+from tqdm import tqdm
+
 class Geometry(H5FlowResource):
     '''
         Provides helper functions for looking up geometric properties. 
@@ -784,7 +786,8 @@ class Geometry(H5FlowResource):
         self._pixel_pitch = [0.]*n_modules
 
         # Loop through modules
-        for module_id in module_to_io_groups:
+        print('a')
+        for module_id in tqdm(module_to_io_groups):
             geometry_yaml = geometry_yamls[self.crs_geometry_to_module[module_id-1]]
             pixel_pitch = geometry_yaml['pixel_pitch'] / units.cm # convert mm -> cm
             self._pixel_pitch[module_id-1] = pixel_pitch
@@ -796,11 +799,13 @@ class Geometry(H5FlowResource):
             ys = np.array(list(chip_channel_to_position.values()))[:, 1] * pixel_pitch
             z_size = max(zs) - min(zs) + pixel_pitch
             y_size = max(ys) - min(ys) + pixel_pitch
-            for tile in tile_chip_to_io:
+            print('b')
+            for tile in tqdm(tile_chip_to_io):
                 tile_orientation = tile_orientations[tile]
                 tile_geometry[tile] = [pos / units.cm for pos in tile_positions[tile]], tile_orientations[tile] # convert mm -> cm
 
-                for chip in tile_chip_to_io[tile]:
+                print('c')
+                for chip in tqdm(tile_chip_to_io[tile]):
                     io_group_io_channel = tile_chip_to_io[tile][chip]
                     io_group = io_group_io_channel//1000 + (module_id-1)*len(det_geometry_yaml['module_to_io_groups'][module_id])
                     io_channel = io_group_io_channel % 1000
@@ -813,7 +818,8 @@ class Geometry(H5FlowResource):
                         for io_channel in range(start_io_channel, start_io_channel+self.n_io_channels_per_tile):
                             self._tile_id[([io_group], [io_channel])] = tile+(module_id-1)*len(tile_chip_to_io)
 
-                for chip_channel in chip_channel_to_position:
+                print('d')
+                for chip_channel in tqdm(chip_channel_to_position):
                     chip = chip_channel // 1000
                     channel = chip_channel % 1000
                     try:
@@ -847,7 +853,8 @@ class Geometry(H5FlowResource):
                     else:
                         io_channels = [io_channel]
 
-                    for ioc in io_channels:
+                    print('e')
+                    for ioc in tqdm(io_channels):
                         try:
                             self._pixel_coordinates_2D[(io_group, ioc, chip, channel)] = z, y
                         except:
