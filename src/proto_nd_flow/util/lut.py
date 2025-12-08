@@ -22,7 +22,7 @@ def read_lut(data_manager, path, name=None):
 def _set_scalar(keys, val, min_max_keys, offsets, data, filled):
     idx = 1 + keys[0] - min_max_keys[0][0]
     for i, key in enumerate(keys[1:]):
-        idx += key - min_max_keys[i + 1][0] * offsets[i]
+        idx += (key - min_max_keys[i + 1][0]) * offsets[i]
     data[idx] = val
     filled[idx] = True
 
