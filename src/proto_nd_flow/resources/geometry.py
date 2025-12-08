@@ -390,9 +390,10 @@ class Geometry(H5FlowResource):
 
         self._module_RO_bounds = []
 
+        io_group, io_channel, chip_id, channel_id = self.pixel_coordinates_2D.keys()
+
         # Loop through modules
-        for module_id in tqdm(module_to_io_groups, desc='q'):
-            io_group, io_channel, chip_id, channel_id = self.pixel_coordinates_2D.keys()
+        for module_id in module_to_io_groups:
             min_coord = np.finfo(self.pixel_coordinates_2D.dtype).min
             max_coord = np.finfo(self.pixel_coordinates_2D.dtype).max
             min_x, max_x = min_coord, max_coord
@@ -400,7 +401,7 @@ class Geometry(H5FlowResource):
             min_z, max_z = min_coord, max_coord
 
             # Loop through io_groups
-            for iog in tqdm(module_to_io_groups[module_id], desc='w', position=1, leave=False):
+            for iog in module_to_io_groups[module_id]:
                 
                 mask = (io_group == iog)
 
@@ -787,6 +788,7 @@ class Geometry(H5FlowResource):
 
         # Loop through modules
         for module_id in tqdm(module_to_io_groups, desc='a'):
+            iog_per_mod = len(det_geometry_yaml['module_to_io_groups'][module_id])
             geometry_yaml = geometry_yamls[self.crs_geometry_to_module[module_id-1]]
             pixel_pitch = geometry_yaml['pixel_pitch'] / units.cm # convert mm -> cm
             self._pixel_pitch[module_id-1] = pixel_pitch
@@ -798,13 +800,13 @@ class Geometry(H5FlowResource):
             ys = np.array(list(chip_channel_to_position.values()))[:, 1] * pixel_pitch
             z_size = max(zs) - min(zs) + pixel_pitch
             y_size = max(ys) - min(ys) + pixel_pitch
-            for tile in tqdm(tile_chip_to_io, desc='b', position=1, leave=False):
+            for tile in tile_chip_to_io:
                 tile_orientation = tile_orientations[tile]
                 tile_geometry[tile] = [pos / units.cm for pos in tile_positions[tile]], tile_orientations[tile] # convert mm -> cm
 
-                for chip in tqdm(tile_chip_to_io[tile], desc='c', position=2, leave=False):
+                for chip in tile_chip_to_io[tile]:
                     io_group_io_channel = tile_chip_to_io[tile][chip]
-                    io_group = io_group_io_channel//1000 + (module_id-1)*len(det_geometry_yaml['module_to_io_groups'][module_id])
+                    io_group = io_group_io_channel//1000 + (module_id-1)*iog_per_mod
                     io_channel = io_group_io_channel % 1000
                     self._tile_id[([io_group], [io_channel])] = tile+(module_id-1)*len(tile_chip_to_io)
                     
@@ -815,7 +817,7 @@ class Geometry(H5FlowResource):
                         for io_channel in range(start_io_channel, start_io_channel+self.n_io_channels_per_tile):
                             self._tile_id[([io_group], [io_channel])] = tile+(module_id-1)*len(tile_chip_to_io)
 
-                for chip_channel in tqdm(chip_channel_to_position, desc='d', position=2, leave=False):
+                for chip_channel in chip_channel_to_position:
                     chip = chip_channel // 1000
                     channel = chip_channel % 1000
                     try:
@@ -828,9 +830,9 @@ class Geometry(H5FlowResource):
                         else:
                             continue
 
-                    io_group = io_group_io_channel // 1000 + (module_id-1)*len(det_geometry_yaml['module_to_io_groups'][module_id])
+                    io_group = io_group_io_channel // 1000 + (module_id-1)*iog_per_mod
                     io_channel = io_group_io_channel % 1000
-                    
+
                     z = chip_channel_to_position[chip_channel][0] * \
                         pixel_pitch - z_size / 2 + pixel_pitch / 2
                     y = chip_channel_to_position[chip_channel][1] * \
@@ -851,7 +853,7 @@ class Geometry(H5FlowResource):
 
                     for ioc in io_channels:
                         try:
-                            self._pixel_coordinates_2D[(io_group, ioc, chip, channel)] = z, y
+                            self._pixel_coordinates_2D.set_scalar((io_group, ioc, chip, channel), (z, y))
                         except:
                             print(io_group, ioc, chip, channel)
 

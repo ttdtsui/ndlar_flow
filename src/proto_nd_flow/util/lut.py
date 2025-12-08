@@ -1,3 +1,4 @@
+import numba as nb
 import numpy as np
 
 
@@ -15,6 +16,15 @@ def read_lut(data_manager, path, name=None):
     lut_arr = data_manager.get_dset(path)
     lut_meta = data_manager.get_attrs(path)['meta']
     return LUT.from_array(lut_meta, lut_arr)
+
+
+@nb.njit
+def _set_scalar(keys, val, min_max_keys, offsets, data, filled):
+    idx = 1 + keys[0] - min_max_keys[0][0]
+    for i, key in enumerate(keys[1:]):
+        idx += key - min_max_keys[i + 1][0] * offsets[i]
+    data[idx] = val
+    filled[idx] = True
 
 
 class LUT(object):
@@ -59,6 +69,7 @@ class LUT(object):
         self.dtype = dtype
         self.min_max_keys = np.array(min_max_keys, dtype='i8')
         self.lengths = np.array([max_ - min_ + 1 for min_, max_ in self.min_max_keys])
+        self.offsets = np.cumprod(self.lengths)
         self.max_hash = int(self._hash(*[max_ for min_, max_ in min_max_keys]))
         shape = (self.max_hash + 1,) + shape if shape else (self.max_hash + 1,)
         self._data = np.zeros(shape, dtype=self.dtype)
@@ -277,6 +288,9 @@ class LUT(object):
 
     def __getitem__(self, keys):
         return self._data[self.hash(*keys)]
+
+    def set_scalar(self, keys, val):
+        _set_scalar(keys, val, self.min_max_keys, self.offsets, self._data, self._filled)
 
     def __setitem__(self, keys, val):
         idx = self.hash(*keys)
